@@ -1,3 +1,4 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -40,6 +41,8 @@
   table.yu-table tr:hover { background: #FAFAF7; }
   .yu-del { border: none; background: none; color: #A9A79E; cursor: pointer; font-size: 15px; padding: 2px 6px; }
   .yu-del:hover { color: #A32D2D; }
+  .yu-edit { border: none; background: none; color: #A9A79E; cursor: pointer; font-size: 14px; padding: 2px 6px; }
+  .yu-edit:hover { color: #185FA5; }
   .yu-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .yu-toolbar select { height: 32px; border: 1px solid #D6D4CB; border-radius: 8px; padding: 0 8px; font-size: 12px; font-family: inherit; }
   .yu-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6B6D68; }
@@ -54,6 +57,27 @@
   .yu-panel { display: none; }
   .yu-panel.active { display: block; }
   .yu-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+
+  @media (max-width: 560px) {
+    #yu-app { padding: 0 4px; }
+    .yu-h1 { font-size: 21px; }
+    .yu-sub { font-size: 13px; margin-bottom: 16px; }
+    .yu-topbar { flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+    .yu-card { padding: 14px 14px; margin-bottom: 14px; border-radius: 10px; }
+    .yu-card h2 { font-size: 14px; flex-wrap: wrap; gap: 8px; }
+    .yu-form-grid { grid-template-columns: 1fr 1fr; gap: 8px 8px; }
+    .yu-board-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .yu-tile { padding: 10px 12px; }
+    .yu-tile .pb { font-size: 19px; }
+    .yu-tabs { gap: 0; margin-bottom: 16px; }
+    .yu-tab { margin-right: 12px; font-size: 13px; padding: 8px 2px; }
+    table.yu-table { font-size: 12px; }
+    table.yu-table th, table.yu-table td { padding: 6px 6px; }
+    .yu-settings-row { flex-direction: column; align-items: stretch; }
+    .yu-settings-row input { min-width: 0; }
+    #yuSave { width: 100%; }
+    #panel-kirjaa .yu-card > div[style*="margin-top:12px"] { flex-direction: column; align-items: stretch; gap: 8px; }
+  }
 </style>
 <div id="yu-app">
   <div class="yu-topbar">
@@ -107,7 +131,7 @@
 
   <div class="yu-panel" id="panel-kirjaa">
     <div class="yu-card">
-      <h2>Lisää suoritus</h2>
+      <h2 id="yuFormTitle">Lisää suoritus</h2>
       <div class="yu-form-grid">
         <div class="yu-field"><label>Päivämäärä</label><input type="date" id="yuDate"></div>
         <div class="yu-field"><label>Laji</label><select id="yuLaji"></select></div>
@@ -121,6 +145,7 @@
       <div class="yu-field" style="margin-top:10px"><label>Muistiinpanot</label><textarea id="yuNotes" placeholder="vapaaehtoinen"></textarea></div>
       <div style="margin-top:12px; display:flex; align-items:center; gap:12px;">
         <button class="yu-btn" id="yuSave">Tallenna tulos</button>
+        <button class="yu-btn secondary" id="yuCancelEdit" style="display:none">Peruuta muokkaus</button>
         <span class="yu-hint" id="yuSaveHint">Pitkät ajat muodossa min:sek,sadasosaa, esim. 2:10,53</span>
       </div>
       <div class="yu-err" id="yuErr"></div>
@@ -156,6 +181,7 @@
   var customLajit = [];
   var chart = null;
   var apiUrl = "";
+  var editingId = null;
 
   var hasClaudeStorage = (typeof window.storage !== "undefined") && window.storage && typeof window.storage.get === "function";
 
@@ -436,8 +462,9 @@
       return;
     }
 
-    var newEntry = {
-      id: Date.now() + "_" + Math.random().toString(36).slice(2,7),
+    var isEditing = !!editingId;
+    var entryObj = {
+      id: isEditing ? editingId : (Date.now() + "_" + Math.random().toString(36).slice(2,7)),
       date: date, laji: laji, tyyppi: tyyppi, unit: yksikko,
       tulosRaw: tulosRaw, tulosSec: tulosSec,
       kilpailu: kilpailu, paikka: paikka, notes: notes,
@@ -446,16 +473,23 @@
 
     if (apiUrl){
       try {
-        await callApi("add", { entry: newEntry });
+        await callApi(isEditing ? "update" : "add", { entry: entryObj });
       } catch(err){
-        errEl.textContent = "Tallennus Sheetsiin epäonnistui. Yritä uudelleen.";
+        errEl.textContent = (isEditing ? "Päivitys" : "Tallennus") + " Sheetsiin epäonnistui. Yritä uudelleen.";
         errEl.style.display = "";
         return;
       }
     }
-    entries.push(newEntry);
+
+    if (isEditing){
+      var idx = entries.findIndex(function(e){ return e.id === editingId; });
+      if (idx > -1) entries[idx] = entryObj; else entries.push(entryObj);
+    } else {
+      entries.push(entryObj);
+    }
     await saveEntries();
 
+    var wasEditing = isEditing;
     document.getElementById("yuTulos").value = "";
     document.getElementById("yuKilpailu").value = "";
     document.getElementById("yuPaikka").value = "";
@@ -463,16 +497,52 @@
     document.getElementById("yuSarja").value = "";
     if (lajiSel === "__muu__"){
       document.getElementById("yuCustomName").value = "";
-      document.getElementById("yuLaji").value = laji in {} ? laji : document.getElementById("yuLaji").value;
     }
+    if (wasEditing) cancelEdit();
 
     renderAll();
 
     var hintEl = document.getElementById("yuSaveHint");
     var originalHint = hintEl.textContent;
-    hintEl.textContent = "Tallennettu: " + laji + " " + formatTulos(tulosSec, tyyppi);
+    hintEl.textContent = (wasEditing ? "Päivitetty: " : "Tallennettu: ") + laji + " " + formatTulos(tulosSec, tyyppi);
     hintEl.style.color = "#3B6D11";
     setTimeout(function(){ hintEl.textContent = originalHint; hintEl.style.color = ""; }, 3000);
+  }
+
+  function startEdit(id){
+    var entry = entries.find(function(e){ return e.id === id; });
+    if (!entry) return;
+    editingId = id;
+    document.getElementById("yuDate").value = entry.date;
+    document.getElementById("yuLaji").value = entry.laji;
+    document.getElementById("yuCustomWrap").style.display = "none";
+    document.getElementById("yuCustomTypeWrap").style.display = "none";
+    document.getElementById("yuSarja").value = entry.sarja || "";
+    document.getElementById("yuTulos").value = entry.tulosRaw || formatTulos(entry.tulosSec, entry.tyyppi);
+    document.getElementById("yuKilpailu").value = entry.kilpailu || "";
+    document.getElementById("yuPaikka").value = entry.paikka || "";
+    document.getElementById("yuNotes").value = entry.notes || "";
+    document.getElementById("yuFormTitle").textContent = "Muokkaa suoritusta";
+    document.getElementById("yuSave").textContent = "Päivitä tulos";
+    document.getElementById("yuCancelEdit").style.display = "";
+    document.querySelectorAll(".yu-tab").forEach(function(b){ b.classList.remove("active"); });
+    document.querySelectorAll(".yu-panel").forEach(function(p){ p.classList.remove("active"); });
+    document.querySelector('.yu-tab[data-tab="kirjaa"]').classList.add("active");
+    document.getElementById("panel-kirjaa").classList.add("active");
+  }
+
+  function cancelEdit(){
+    editingId = null;
+    document.getElementById("yuFormTitle").textContent = "Lisää suoritus";
+    document.getElementById("yuSave").textContent = "Tallenna tulos";
+    document.getElementById("yuCancelEdit").style.display = "none";
+    document.getElementById("yuDate").valueAsDate = new Date();
+    document.getElementById("yuLaji").selectedIndex = 0;
+    document.getElementById("yuTulos").value = "";
+    document.getElementById("yuKilpailu").value = "";
+    document.getElementById("yuPaikka").value = "";
+    document.getElementById("yuNotes").value = "";
+    document.getElementById("yuSarja").value = "";
   }
 
   async function deleteEntry(id){
@@ -529,11 +599,14 @@
         '<td>' + (e.kilpailu || "") + '</td>' +
         '<td>' + (e.paikka || "") + '</td>' +
         '<td>' + (e.notes || "") + '</td>' +
-        '<td><button class="yu-del" data-id="' + e.id + '" title="Poista">✕</button></td>';
+        '<td><button class="yu-edit" data-id="' + e.id + '" title="Muokkaa">✎</button><button class="yu-del" data-id="' + e.id + '" title="Poista">✕</button></td>';
       tbody.appendChild(tr);
     });
     tbody.querySelectorAll(".yu-del").forEach(function(btn){
       btn.addEventListener("click", function(){ deleteEntry(btn.getAttribute("data-id")); });
+    });
+    tbody.querySelectorAll(".yu-edit").forEach(function(btn){
+      btn.addEventListener("click", function(){ startEdit(btn.getAttribute("data-id")); });
     });
   }
 
@@ -607,6 +680,7 @@
   });
 
   document.getElementById("yuSave").addEventListener("click", handleSave);
+  document.getElementById("yuCancelEdit").addEventListener("click", cancelEdit);
   document.getElementById("yuExport").addEventListener("click", exportCsv);
   document.getElementById("yuChartLaji").addEventListener("change", renderChart);
   document.getElementById("yuFilterLaji").addEventListener("change", renderTable);
