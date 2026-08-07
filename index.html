@@ -43,6 +43,17 @@
   .yu-del:hover { color: #A32D2D; }
   .yu-edit { border: none; background: none; color: #A9A79E; cursor: pointer; font-size: 14px; padding: 2px 6px; }
   .yu-edit:hover { color: #185FA5; }
+  .yu-mobile-list { display: none; }
+  .yu-mrow { border: 1px solid #E4E2DA; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .yu-mrow-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .yu-mrow-date { font-size: 11px; color: #8C8A82; }
+  .yu-mrow-actions .yu-edit, .yu-mrow-actions .yu-del { font-size: 16px; padding: 2px 8px; }
+  .yu-mrow-main { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .yu-mrow-laji { font-size: 14px; font-weight: 500; }
+  .yu-mrow-sarja { font-size: 11px; color: #8C8A82; font-weight: 400; margin-left: 4px; }
+  .yu-mrow-tulos { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 600; white-space: nowrap; }
+  .yu-mrow-meta { font-size: 12px; color: #6B6D68; margin-top: 3px; }
+  .yu-mrow-notes { font-size: 12px; color: #8C8A82; margin-top: 3px; font-style: italic; }
   .yu-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .yu-toolbar select { height: 32px; border: 1px solid #D6D4CB; border-radius: 8px; padding: 0 8px; font-size: 12px; font-family: inherit; }
   .yu-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6B6D68; }
@@ -73,6 +84,8 @@
     .yu-tab { margin-right: 12px; font-size: 13px; padding: 8px 2px; }
     table.yu-table { font-size: 12px; }
     table.yu-table th, table.yu-table td { padding: 6px 6px; }
+    .yu-table-wrap { display: none; }
+    .yu-mobile-list { display: block; }
     .yu-settings-row { flex-direction: column; align-items: stretch; }
     .yu-settings-row input { min-width: 0; }
     #yuSave { width: 100%; }
@@ -125,6 +138,7 @@
           <tbody id="yuTbody"></tbody>
         </table>
       </div>
+      <div class="yu-mobile-list" id="yuMobileList"></div>
       <div id="yuTableEmpty" class="yu-empty" style="display:none">Ei tuloksia näytettäväksi.</div>
     </div>
   </div>
@@ -139,12 +153,13 @@
         <div class="yu-field" id="yuCustomWrap" style="display:none"><label>Uuden lajin nimi</label><input type="text" id="yuCustomName" placeholder="esim. 40m juoksu"></div>
         <div class="yu-field" id="yuCustomTypeWrap" style="display:none"><label>Tyyppi</label><select id="yuCustomType"><option value="Aika">Aika (pienempi parempi)</option><option value="Matka">Matka (suurempi parempi)</option></select></div>
         <div class="yu-field"><label>Tulos</label><input type="text" id="yuTulos" placeholder="9,8 tai 2:10,53"></div>
-        <div class="yu-field"><label>Kilpailu / harjoitus</label><input type="text" id="yuKilpailu" placeholder="esim. Piirikunnalliset"></div>
-        <div class="yu-field"><label>Paikka</label><input type="text" id="yuPaikka" placeholder="esim. Pori"></div>
+        <div class="yu-field"><label>Kilpailu / harjoitus</label><input type="text" id="yuKilpailu" placeholder="esim. Piirikunnalliset" list="yuKilpailuList"><datalist id="yuKilpailuList"></datalist></div>
+        <div class="yu-field"><label>Paikka</label><input type="text" id="yuPaikka" placeholder="esim. Pori" list="yuPaikkaList"><datalist id="yuPaikkaList"></datalist></div>
       </div>
       <div class="yu-field" style="margin-top:10px"><label>Muistiinpanot</label><textarea id="yuNotes" placeholder="vapaaehtoinen"></textarea></div>
       <div style="margin-top:12px; display:flex; align-items:center; gap:12px;">
         <button class="yu-btn" id="yuSave">Tallenna tulos</button>
+        <button class="yu-btn secondary" id="yuClearForm">Tyhjennä kentät</button>
         <button class="yu-btn secondary" id="yuCancelEdit" style="display:none">Peruuta muokkaus</button>
         <span class="yu-hint" id="yuSaveHint">Pitkät ajat muodossa min:sek,sadasosaa, esim. 2:10,53</span>
       </div>
@@ -491,14 +506,17 @@
 
     var wasEditing = isEditing;
     document.getElementById("yuTulos").value = "";
-    document.getElementById("yuKilpailu").value = "";
-    document.getElementById("yuPaikka").value = "";
-    document.getElementById("yuNotes").value = "";
-    document.getElementById("yuSarja").value = "";
     if (lajiSel === "__muu__"){
       document.getElementById("yuCustomName").value = "";
     }
-    if (wasEditing) cancelEdit();
+    document.getElementById("yuLaji").selectedIndex = 0;
+    document.getElementById("yuCustomWrap").style.display = "none";
+    document.getElementById("yuCustomTypeWrap").style.display = "none";
+    if (wasEditing){
+      document.getElementById("yuNotes").value = "";
+      document.getElementById("yuSarja").value = "";
+      cancelEdit();
+    }
 
     renderAll();
 
@@ -583,8 +601,10 @@
   function renderTable(){
     var filterVal = document.getElementById("yuFilterLaji").value;
     var tbody = document.getElementById("yuTbody");
+    var mobileList = document.getElementById("yuMobileList");
     var empty = document.getElementById("yuTableEmpty");
     tbody.innerHTML = "";
+    mobileList.innerHTML = "";
     var rows = entries.slice().filter(function(e){ return !filterVal || e.laji === filterVal; });
     rows.sort(function(a,b){ return b.date.localeCompare(a.date); });
     if (rows.length === 0){ empty.style.display = ""; return; }
@@ -601,12 +621,30 @@
         '<td>' + (e.notes || "") + '</td>' +
         '<td><button class="yu-edit" data-id="' + e.id + '" title="Muokkaa">✎</button><button class="yu-del" data-id="' + e.id + '" title="Poista">✕</button></td>';
       tbody.appendChild(tr);
+
+      var metaParts = [e.kilpailu, e.paikka].filter(Boolean).join(" · ");
+      var card = document.createElement("div");
+      card.className = "yu-mrow";
+      card.innerHTML =
+        '<div class="yu-mrow-top">' +
+          '<span class="yu-mrow-date">' + formatDate(e.date) + '</span>' +
+          '<span class="yu-mrow-actions"><button class="yu-edit" data-id="' + e.id + '" title="Muokkaa">✎</button><button class="yu-del" data-id="' + e.id + '" title="Poista">✕</button></span>' +
+        '</div>' +
+        '<div class="yu-mrow-main">' +
+          '<span class="yu-mrow-laji">' + e.laji + (e.sarja ? '<span class="yu-mrow-sarja">' + e.sarja + '</span>' : '') + '</span>' +
+          '<span class="yu-mrow-tulos">' + formatTulos(e.tulosSec, e.tyyppi) + '</span>' +
+        '</div>' +
+        (metaParts ? '<div class="yu-mrow-meta">' + metaParts + '</div>' : '') +
+        (e.notes ? '<div class="yu-mrow-notes">' + e.notes + '</div>' : '');
+      mobileList.appendChild(card);
     });
-    tbody.querySelectorAll(".yu-del").forEach(function(btn){
-      btn.addEventListener("click", function(){ deleteEntry(btn.getAttribute("data-id")); });
-    });
-    tbody.querySelectorAll(".yu-edit").forEach(function(btn){
-      btn.addEventListener("click", function(){ startEdit(btn.getAttribute("data-id")); });
+    [tbody, mobileList].forEach(function(container){
+      container.querySelectorAll(".yu-del").forEach(function(btn){
+        btn.addEventListener("click", function(){ deleteEntry(btn.getAttribute("data-id")); });
+      });
+      container.querySelectorAll(".yu-edit").forEach(function(btn){
+        btn.addEventListener("click", function(){ startEdit(btn.getAttribute("data-id")); });
+      });
     });
   }
 
@@ -663,8 +701,18 @@
     URL.revokeObjectURL(url);
   }
 
+  function populateDatalists(){
+    var kilpailut = Array.from(new Set(entries.map(function(e){ return e.kilpailu; }).filter(Boolean)));
+    var paikat = Array.from(new Set(entries.map(function(e){ return e.paikka; }).filter(Boolean)));
+    var kList = document.getElementById("yuKilpailuList");
+    var pList = document.getElementById("yuPaikkaList");
+    kList.innerHTML = kilpailut.map(function(v){ return '<option value="' + v.replace(/"/g,'&quot;') + '">'; }).join("");
+    pList.innerHTML = paikat.map(function(v){ return '<option value="' + v.replace(/"/g,'&quot;') + '">'; }).join("");
+  }
+
   function renderAll(){
     populateLajiSelects();
+    populateDatalists();
     renderBoard();
     renderTable();
     renderChart();
@@ -676,11 +724,23 @@
       document.querySelectorAll(".yu-panel").forEach(function(p){ p.classList.remove("active"); });
       btn.classList.add("active");
       document.getElementById("panel-" + btn.getAttribute("data-tab")).classList.add("active");
+      if (btn.getAttribute("data-tab") === "tulokset"){
+        renderChart();
+      }
     });
   });
 
   document.getElementById("yuSave").addEventListener("click", handleSave);
   document.getElementById("yuCancelEdit").addEventListener("click", cancelEdit);
+  document.getElementById("yuClearForm").addEventListener("click", function(){
+    document.getElementById("yuKilpailu").value = "";
+    document.getElementById("yuPaikka").value = "";
+    document.getElementById("yuSarja").value = "";
+    document.getElementById("yuNotes").value = "";
+    document.getElementById("yuTulos").value = "";
+    document.getElementById("yuDate").valueAsDate = new Date();
+    document.getElementById("yuLaji").selectedIndex = 0;
+  });
   document.getElementById("yuExport").addEventListener("click", exportCsv);
   document.getElementById("yuChartLaji").addEventListener("change", renderChart);
   document.getElementById("yuFilterLaji").addEventListener("change", renderTable);
