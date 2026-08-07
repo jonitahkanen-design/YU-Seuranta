@@ -1,0 +1,621 @@
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Yleisurheilu">
+<meta name="theme-color" content="#1B1D1B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  #yu-app { font-family: 'Inter', system-ui, sans-serif; color: #1B1D1B; max-width: 900px; margin: 0 auto; }
+  #yu-app * { box-sizing: border-box; }
+  .yu-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .12em; color: #C1432A; font-weight: 600; text-transform: uppercase; }
+  .yu-h1 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 600; margin: 4px 0 2px; }
+  .yu-sub { font-size: 14px; color: #6B6D68; margin: 0 0 24px; }
+  .yu-card { background: #FFFFFF; border: 1px solid #E4E2DA; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; }
+  .yu-card h2 { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; margin: 0 0 14px; display: flex; align-items: center; justify-content: space-between; }
+  .yu-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px 12px; }
+  .yu-field label { display: block; font-size: 11px; color: #6B6D68; margin-bottom: 4px; font-weight: 500; }
+  .yu-field input, .yu-field select { width: 100%; height: 34px; border: 1px solid #D6D4CB; border-radius: 8px; padding: 0 10px; font-size: 13px; font-family: inherit; background: #FCFCFA; color: #1B1D1B; }
+  .yu-field textarea { width: 100%; border: 1px solid #D6D4CB; border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 34px; background: #FCFCFA; color: #1B1D1B; }
+  .yu-field input:focus, .yu-field select:focus, .yu-field textarea:focus { outline: none; border-color: #C1432A; box-shadow: 0 0 0 2px rgba(193,67,42,0.15); }
+  .yu-btn { height: 34px; padding: 0 16px; border-radius: 8px; border: 1px solid #1B1D1B; background: #1B1D1B; color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .yu-btn:hover { background: #333530; }
+  .yu-btn.secondary { background: #fff; color: #1B1D1B; border: 1px solid #D6D4CB; }
+  .yu-btn.secondary:hover { background: #F4F3EF; }
+  .yu-err { font-size: 12px; color: #A32D2D; margin-top: 8px; display: none; }
+  .yu-hint { font-size: 11px; color: #8C8A82; margin-top: 4px; }
+  .yu-board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 10px; }
+  .yu-tile { background: #1B1D1B; border-radius: 10px; padding: 12px 14px; }
+  .yu-tile .name { font-size: 11px; color: #A9A79E; font-weight: 500; margin-bottom: 6px; }
+  .yu-tile .pb { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 600; color: #F4A46A; letter-spacing: .02em; }
+  .yu-tile .meta { font-size: 10.5px; color: #8C8A82; margin-top: 6px; }
+  .yu-empty { font-size: 13px; color: #8C8A82; padding: 8px 0; }
+  .yu-table-wrap { overflow-x: auto; }
+  table.yu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.yu-table th { text-align: left; font-size: 11px; color: #6B6D68; font-weight: 500; padding: 6px 8px; border-bottom: 1px solid #E4E2DA; white-space: nowrap; }
+  table.yu-table td { padding: 7px 8px; border-bottom: 1px solid #EFEEE8; white-space: nowrap; }
+  table.yu-table td.tulos { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  table.yu-table tr:hover { background: #FAFAF7; }
+  .yu-del { border: none; background: none; color: #A9A79E; cursor: pointer; font-size: 15px; padding: 2px 6px; }
+  .yu-del:hover { color: #A32D2D; }
+  .yu-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .yu-toolbar select { height: 32px; border: 1px solid #D6D4CB; border-radius: 8px; padding: 0 8px; font-size: 12px; font-family: inherit; }
+  .yu-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #6B6D68; }
+  .yu-dot { width: 8px; height: 8px; border-radius: 50%; background: #A9A79E; display: inline-block; }
+  .yu-dot.on { background: #639922; }
+  .yu-dot.err { background: #A32D2D; }
+  .yu-settings-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .yu-settings-row input { flex: 1; min-width: 220px; height: 34px; border: 1px solid #D6D4CB; border-radius: 8px; padding: 0 10px; font-size: 12px; font-family: 'JetBrains Mono', monospace; background: #FCFCFA; color: #1B1D1B; }
+  .yu-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid #E4E2DA; }
+  .yu-tab { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; background: none; border: none; padding: 10px 4px; margin-right: 20px; color: #8C8A82; cursor: pointer; border-bottom: 2px solid transparent; }
+  .yu-tab.active { color: #1B1D1B; border-bottom-color: #C1432A; }
+  .yu-panel { display: none; }
+  .yu-panel.active { display: block; }
+  .yu-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+</style>
+<div id="yu-app">
+  <div class="yu-topbar">
+    <div>
+      <div class="yu-eyebrow">Tuloskirjanpito</div>
+      <div class="yu-h1">Yleisurheiluseuranta</div>
+    </div>
+    <span class="yu-status" id="yuStatus"><span class="yu-dot" id="yuStatusDot"></span><span id="yuStatusText">Paikallinen tallennus</span></span>
+  </div>
+  <p class="yu-sub">Tulokset, ennätykset ja kehitys yhdessä paikassa.</p>
+
+  <div class="yu-tabs">
+    <button class="yu-tab active" data-tab="tulokset">Tulokset</button>
+    <button class="yu-tab" data-tab="kirjaa">Kirjaa</button>
+    <button class="yu-tab" data-tab="asetukset">Asetukset</button>
+  </div>
+
+  <div class="yu-panel active" id="panel-tulokset">
+    <div class="yu-card">
+      <h2>Ennätykset</h2>
+      <div id="yuBoard" class="yu-board-grid"></div>
+      <div id="yuBoardEmpty" class="yu-empty" style="display:none">Ei vielä kirjattuja tuloksia.</div>
+    </div>
+
+    <div class="yu-card">
+      <h2>Kehitys</h2>
+      <div class="yu-toolbar" style="margin-bottom:12px">
+        <select id="yuChartLaji"></select>
+      </div>
+      <div style="position:relative; height:220px;"><canvas id="yuChart"></canvas></div>
+      <div id="yuChartEmpty" class="yu-empty" style="display:none">Lisää vähintään kaksi tulosta samasta lajista nähdäksesi kehityksen.</div>
+    </div>
+
+    <div class="yu-card">
+      <h2>
+        Kaikki tulokset
+        <button class="yu-btn secondary" id="yuExport">Vie CSV</button>
+      </h2>
+      <div class="yu-toolbar" style="margin-bottom:12px">
+        <select id="yuFilterLaji"></select>
+      </div>
+      <div class="yu-table-wrap">
+        <table class="yu-table">
+          <thead><tr><th>Pvm</th><th>Laji</th><th>Sarja</th><th>Tulos</th><th>Kilpailu</th><th>Paikka</th><th>Muistiinpanot</th><th></th></tr></thead>
+          <tbody id="yuTbody"></tbody>
+        </table>
+      </div>
+      <div id="yuTableEmpty" class="yu-empty" style="display:none">Ei tuloksia näytettäväksi.</div>
+    </div>
+  </div>
+
+  <div class="yu-panel" id="panel-kirjaa">
+    <div class="yu-card">
+      <h2>Lisää suoritus</h2>
+      <div class="yu-form-grid">
+        <div class="yu-field"><label>Päivämäärä</label><input type="date" id="yuDate"></div>
+        <div class="yu-field"><label>Laji</label><select id="yuLaji"></select></div>
+        <div class="yu-field"><label>Sarja</label><input type="text" id="yuSarja" placeholder="esim. T9"></div>
+        <div class="yu-field" id="yuCustomWrap" style="display:none"><label>Uuden lajin nimi</label><input type="text" id="yuCustomName" placeholder="esim. 40m juoksu"></div>
+        <div class="yu-field" id="yuCustomTypeWrap" style="display:none"><label>Tyyppi</label><select id="yuCustomType"><option value="Aika">Aika (pienempi parempi)</option><option value="Matka">Matka (suurempi parempi)</option></select></div>
+        <div class="yu-field"><label>Tulos</label><input type="text" id="yuTulos" placeholder="9,8 tai 2:10,53"></div>
+        <div class="yu-field"><label>Kilpailu / harjoitus</label><input type="text" id="yuKilpailu" placeholder="esim. Piirikunnalliset"></div>
+        <div class="yu-field"><label>Paikka</label><input type="text" id="yuPaikka" placeholder="esim. Pori"></div>
+      </div>
+      <div class="yu-field" style="margin-top:10px"><label>Muistiinpanot</label><textarea id="yuNotes" placeholder="vapaaehtoinen"></textarea></div>
+      <div style="margin-top:12px; display:flex; align-items:center; gap:12px;">
+        <button class="yu-btn" id="yuSave">Tallenna tulos</button>
+        <span class="yu-hint" id="yuSaveHint">Pitkät ajat muodossa min:sek,sadasosaa, esim. 2:10,53</span>
+      </div>
+      <div class="yu-err" id="yuErr"></div>
+    </div>
+  </div>
+
+  <div class="yu-panel" id="panel-asetukset">
+    <div class="yu-card">
+      <h2>Google Sheets -yhteys</h2>
+      <div class="yu-settings-row">
+        <input type="text" id="yuApiUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <button class="yu-btn secondary" id="yuSaveUrl">Tallenna osoite</button>
+        <button class="yu-btn secondary" id="yuMigrate" style="display:none">Siirrä paikalliset tiedot Sheetsiin</button>
+      </div>
+      <div class="yu-hint" style="margin-top:8px">Liitä tähän Apps Scriptin julkaisema /exec-osoite. Ilman sitä tulokset tallentuvat vain tähän laitteeseen.</div>
+      <div class="yu-err" id="yuUrlErr"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var DEFAULT_LAJIT = [
+    ["60m juoksu","Aika","s"],["100m juoksu","Aika","s"],["150m juoksu","Aika","s"],
+    ["200m juoksu","Aika","s"],["400m juoksu","Aika","s"],["800m juoksu","Aika","s"],
+    ["1000m juoksu","Aika","s"],["1500m juoksu","Aika","s"],["60m aitajuoksu","Aika","s"],
+    ["80m aitajuoksu","Aika","s"],["Pituushyppy","Matka","m"],["Korkeushyppy","Matka","m"],
+    ["Kolmiloikka","Matka","m"],["Pallonheitto","Matka","m"],["Keihäänheitto","Matka","m"],
+    ["Kuulantyöntö","Matka","m"],["Moukarinheitto","Matka","m"]
+  ];
+
+  var entries = [];
+  var customLajit = [];
+  var chart = null;
+  var apiUrl = "";
+
+  var hasClaudeStorage = (typeof window.storage !== "undefined") && window.storage && typeof window.storage.get === "function";
+
+  async function storageGet(key){
+    if (hasClaudeStorage){
+      try { return await window.storage.get(key); } catch(e){ return null; }
+    }
+    try {
+      var v = localStorage.getItem(key);
+      return v !== null ? { value: v } : null;
+    } catch(e){ return null; }
+  }
+  async function storageSet(key, value){
+    if (hasClaudeStorage){
+      try { return await window.storage.set(key, value); } catch(e){ return null; }
+    }
+    try { localStorage.setItem(key, value); } catch(e){}
+    return { value: value };
+  }
+
+  function allLajit(){ return DEFAULT_LAJIT.concat(customLajit); }
+  function lajiInfo(name){
+    var found = allLajit().find(function(l){ return l[0] === name; });
+    return found ? { tyyppi: found[1], yksikko: found[2] } : { tyyppi: "Aika", yksikko: "" };
+  }
+
+  function setStatus(mode, text){
+    var dot = document.getElementById("yuStatusDot");
+    var txt = document.getElementById("yuStatusText");
+    dot.className = "yu-dot" + (mode === "on" ? " on" : mode === "err" ? " err" : "");
+    txt.textContent = text;
+  }
+
+  async function callApi(action, payload){
+    if (!apiUrl) throw new Error("no-api-url");
+    if (action === "list"){
+      var res = await fetch(apiUrl + "?action=list");
+      if (!res.ok) throw new Error("http-" + res.status);
+      return res.json();
+    }
+    var body = Object.assign({ action: action }, payload || {});
+    var res2 = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body)
+    });
+    if (!res2.ok) throw new Error("http-" + res2.status);
+    return res2.json();
+  }
+
+  function parseTulos(raw){
+    if (!raw) return NaN;
+    var clean = raw.trim().replace(",", ".");
+    if (clean.indexOf(":") > -1){
+      var parts = clean.split(":");
+      var min = parseFloat(parts[0]);
+      var sec = parseFloat(parts[1]);
+      if (isNaN(min) || isNaN(sec)) return NaN;
+      return min * 60 + sec;
+    }
+    return parseFloat(clean);
+  }
+
+  function formatTulos(value, tyyppi){
+    if (value === null || value === undefined || isNaN(value)) return "";
+    if (tyyppi === "Aika" && value >= 60){
+      var m = Math.floor(value / 60);
+      var s = value - m * 60;
+      var sStr = s.toFixed(2);
+      if (s < 10) sStr = "0" + sStr;
+      return (m + ":" + sStr).replace(".", ",");
+    }
+    return value.toFixed(2).replace(".", ",");
+  }
+
+  function formatDate(iso){
+    if (!iso) return "";
+    var d = new Date(iso + "T00:00:00");
+    if (isNaN(d)) return iso;
+    var dd = String(d.getDate()).padStart(2,"0");
+    var mm = String(d.getMonth()+1).padStart(2,"0");
+    return dd + "." + mm + "." + d.getFullYear();
+  }
+
+  async function loadData(){
+    try {
+      var ru = await storageGet("yu_api_url");
+      apiUrl = ru && ru.value ? ru.value : "";
+    } catch(e){ apiUrl = ""; }
+    document.getElementById("yuApiUrl").value = apiUrl;
+
+    if (apiUrl){
+      try {
+        var remote = await callApi("list");
+        entries = (remote.entries || []).map(function(e){
+          return {
+            id: String(e.id), date: e.date, laji: e.laji, tyyppi: e.tyyppi, unit: e.unit,
+            tulosRaw: e.tulosRaw, tulosSec: parseFloat(e.tulosSec),
+            kilpailu: e.kilpailu, paikka: e.paikka, notes: e.notes, sarja: e.sarja
+          };
+        });
+        customLajit = (remote.customLajit || []).map(function(l){ return [l.name, l.tyyppi, l.yksikko]; });
+        setStatus("on", "Yhdistetty Google Sheetsiin");
+        try {
+          var localCheck = await storageGet("yu_tulokset");
+          var localEntriesCheck = localCheck && localCheck.value ? JSON.parse(localCheck.value) : [];
+          document.getElementById("yuMigrate").style.display = localEntriesCheck.length ? "" : "none";
+        } catch(e){}
+        return;
+      } catch(err){
+        setStatus("err", "Yhteys Sheetsiin epäonnistui — käytetään paikallista tallennusta");
+      }
+    } else {
+      setStatus("", "Paikallinen tallennus");
+    }
+
+    try {
+      var r = await storageGet("yu_tulokset");
+      entries = r && r.value ? JSON.parse(r.value) : [];
+    } catch(e){ entries = []; }
+    try {
+      var rc = await storageGet("yu_custom_lajit");
+      customLajit = rc && rc.value ? JSON.parse(rc.value) : [];
+    } catch(e){ customLajit = []; }
+  }
+
+  async function saveEntries(){
+    if (!apiUrl){
+      await storageSet("yu_tulokset", JSON.stringify(entries));
+    }
+  }
+  async function saveCustomLajit(){
+    if (!apiUrl){
+      await storageSet("yu_custom_lajit", JSON.stringify(customLajit));
+    }
+  }
+
+  document.getElementById("yuSaveUrl").addEventListener("click", async function(){
+    var val = document.getElementById("yuApiUrl").value.trim();
+    var errEl = document.getElementById("yuUrlErr");
+    errEl.style.display = "none";
+    await storageSet("yu_api_url", val);
+    apiUrl = val;
+    if (!val){
+      setStatus("", "Paikallinen tallennus");
+      await loadDataLocalOnly();
+      renderAll();
+      return;
+    }
+    try {
+      var remote = await callApi("list");
+      entries = (remote.entries || []).map(function(e){
+        return {
+          id: String(e.id), date: e.date, laji: e.laji, tyyppi: e.tyyppi, unit: e.unit,
+          tulosRaw: e.tulosRaw, tulosSec: parseFloat(e.tulosSec),
+          kilpailu: e.kilpailu, paikka: e.paikka, notes: e.notes, sarja: e.sarja
+        };
+      });
+      customLajit = (remote.customLajit || []).map(function(l){ return [l.name, l.tyyppi, l.yksikko]; });
+      setStatus("on", "Yhdistetty Google Sheetsiin");
+      var local = await storageGet("yu_tulokset").catch(function(){ return null; });
+      var localEntries = local && local.value ? JSON.parse(local.value) : [];
+      document.getElementById("yuMigrate").style.display = localEntries.length ? "" : "none";
+      renderAll();
+    } catch(err){
+      errEl.textContent = "Osoitteeseen ei saatu yhteyttä. Tarkista että se päättyy /exec ja että käyttöoikeus on \"Anyone\".";
+      errEl.style.display = "";
+      setStatus("err", "Yhteys epäonnistui");
+    }
+  });
+
+  async function loadDataLocalOnly(){
+    try {
+      var r = await storageGet("yu_tulokset");
+      entries = r && r.value ? JSON.parse(r.value) : [];
+    } catch(e){ entries = []; }
+    try {
+      var rc = await storageGet("yu_custom_lajit");
+      customLajit = rc && rc.value ? JSON.parse(rc.value) : [];
+    } catch(e){ customLajit = []; }
+  }
+
+  document.getElementById("yuMigrate").addEventListener("click", async function(){
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Siirretään...";
+    try {
+      var local = await storageGet("yu_tulokset");
+      var localEntries = local && local.value ? JSON.parse(local.value) : [];
+      for (var i = 0; i < localEntries.length; i++){
+        await callApi("add", { entry: localEntries[i] });
+      }
+      var localLajitRes = await storageGet("yu_custom_lajit");
+      var localLajit = localLajitRes && localLajitRes.value ? JSON.parse(localLajitRes.value) : [];
+      for (var j = 0; j < localLajit.length; j++){
+        await callApi("addLaji", { laji: { name: localLajit[j][0], tyyppi: localLajit[j][1], yksikko: localLajit[j][2] } });
+      }
+      await storageSet("yu_tulokset", "[]");
+      btn.style.display = "none";
+      await loadData();
+      renderAll();
+    } catch(err){
+      btn.disabled = false;
+      btn.textContent = "Siirrä paikalliset tiedot Sheetsiin";
+    }
+  });
+
+
+  function populateLajiSelects(){
+    var lajit = allLajit();
+    var mainSel = document.getElementById("yuLaji");
+    var chartSel = document.getElementById("yuChartLaji");
+    var filterSel = document.getElementById("yuFilterLaji");
+    mainSel.innerHTML = "";
+    lajit.forEach(function(l){
+      var o = document.createElement("option");
+      o.value = l[0]; o.textContent = l[0];
+      mainSel.appendChild(o);
+    });
+    var customOpt = document.createElement("option");
+    customOpt.value = "__muu__"; customOpt.textContent = "+ Uusi laji";
+    mainSel.appendChild(customOpt);
+
+    var usedLajit = Array.from(new Set(entries.map(function(e){ return e.laji; })));
+    chartSel.innerHTML = ""; filterSel.innerHTML = "";
+    var allOpt = document.createElement("option");
+    allOpt.value = ""; allOpt.textContent = "Kaikki lajit";
+    filterSel.appendChild(allOpt);
+    usedLajit.forEach(function(name){
+      var o1 = document.createElement("option"); o1.value = name; o1.textContent = name;
+      chartSel.appendChild(o1);
+      var o2 = document.createElement("option"); o2.value = name; o2.textContent = name;
+      filterSel.appendChild(o2);
+    });
+  }
+
+  document.getElementById("yuLaji").addEventListener("change", function(){
+    var isCustom = this.value === "__muu__";
+    document.getElementById("yuCustomWrap").style.display = isCustom ? "" : "none";
+    document.getElementById("yuCustomTypeWrap").style.display = isCustom ? "" : "none";
+  });
+
+  async function handleSave(){
+    var errEl = document.getElementById("yuErr");
+    errEl.style.display = "none";
+    var date = document.getElementById("yuDate").value;
+    var lajiSel = document.getElementById("yuLaji").value;
+    var tulosRaw = document.getElementById("yuTulos").value.trim();
+    var kilpailu = document.getElementById("yuKilpailu").value.trim();
+    var paikka = document.getElementById("yuPaikka").value.trim();
+    var notes = document.getElementById("yuNotes").value.trim();
+
+    var laji, tyyppi, yksikko;
+    if (lajiSel === "__muu__"){
+      var customName = document.getElementById("yuCustomName").value.trim();
+      var customType = document.getElementById("yuCustomType").value;
+      if (!customName){ errEl.textContent = "Anna uudelle lajille nimi."; errEl.style.display = ""; return; }
+      laji = customName; tyyppi = customType; yksikko = customType === "Aika" ? "s" : "m";
+      if (!allLajit().some(function(l){ return l[0] === laji; })){
+        if (apiUrl){
+          try { await callApi("addLaji", { laji: { name: laji, tyyppi: tyyppi, yksikko: yksikko } }); }
+          catch(err){ errEl.textContent = "Uuden lajin tallennus Sheetsiin epäonnistui."; errEl.style.display = ""; return; }
+        }
+        customLajit.push([laji, tyyppi, yksikko]);
+        await saveCustomLajit();
+      }
+    } else {
+      laji = lajiSel;
+      var info = lajiInfo(laji);
+      tyyppi = info.tyyppi; yksikko = info.yksikko;
+    }
+
+    if (!date){ errEl.textContent = "Valitse päivämäärä."; errEl.style.display = ""; return; }
+    var tulosSec = parseTulos(tulosRaw);
+    if (isNaN(tulosSec)){
+      errEl.textContent = "Tulosta ei tunnistettu. Käytä muotoa 9,8 tai 2:10,53.";
+      errEl.style.display = "";
+      return;
+    }
+
+    var newEntry = {
+      id: Date.now() + "_" + Math.random().toString(36).slice(2,7),
+      date: date, laji: laji, tyyppi: tyyppi, unit: yksikko,
+      tulosRaw: tulosRaw, tulosSec: tulosSec,
+      kilpailu: kilpailu, paikka: paikka, notes: notes,
+      sarja: document.getElementById("yuSarja").value.trim()
+    };
+
+    if (apiUrl){
+      try {
+        await callApi("add", { entry: newEntry });
+      } catch(err){
+        errEl.textContent = "Tallennus Sheetsiin epäonnistui. Yritä uudelleen.";
+        errEl.style.display = "";
+        return;
+      }
+    }
+    entries.push(newEntry);
+    await saveEntries();
+
+    document.getElementById("yuTulos").value = "";
+    document.getElementById("yuKilpailu").value = "";
+    document.getElementById("yuPaikka").value = "";
+    document.getElementById("yuNotes").value = "";
+    document.getElementById("yuSarja").value = "";
+    if (lajiSel === "__muu__"){
+      document.getElementById("yuCustomName").value = "";
+      document.getElementById("yuLaji").value = laji in {} ? laji : document.getElementById("yuLaji").value;
+    }
+
+    renderAll();
+
+    var hintEl = document.getElementById("yuSaveHint");
+    var originalHint = hintEl.textContent;
+    hintEl.textContent = "Tallennettu: " + laji + " " + formatTulos(tulosSec, tyyppi);
+    hintEl.style.color = "#3B6D11";
+    setTimeout(function(){ hintEl.textContent = originalHint; hintEl.style.color = ""; }, 3000);
+  }
+
+  async function deleteEntry(id){
+    if (apiUrl){
+      try { await callApi("delete", { id: id }); }
+      catch(err){ alert("Poisto epäonnistui — tarkista yhteys."); return; }
+    }
+    entries = entries.filter(function(e){ return e.id !== id; });
+    await saveEntries();
+    renderAll();
+  }
+
+  function renderBoard(){
+    var board = document.getElementById("yuBoard");
+    var empty = document.getElementById("yuBoardEmpty");
+    board.innerHTML = "";
+    var lajitWithData = Array.from(new Set(entries.map(function(e){ return e.laji; })));
+    if (lajitWithData.length === 0){ empty.style.display = ""; return; }
+    empty.style.display = "none";
+    lajitWithData.forEach(function(laji){
+      var rows = entries.filter(function(e){ return e.laji === laji; });
+      var tyyppi = rows[0].tyyppi;
+      var pbRow = rows.reduce(function(best, cur){
+        if (!best) return cur;
+        if (tyyppi === "Aika") return cur.tulosSec < best.tulosSec ? cur : best;
+        return cur.tulosSec > best.tulosSec ? cur : best;
+      }, null);
+      var tile = document.createElement("div");
+      tile.className = "yu-tile";
+      tile.innerHTML =
+        '<div class="name">' + laji + '</div>' +
+        '<div class="pb">' + formatTulos(pbRow.tulosSec, tyyppi) + (tyyppi === "Matka" ? " m" : " s") + '</div>' +
+        '<div class="meta">' + formatDate(pbRow.date) + (pbRow.sarja ? ' · ' + pbRow.sarja : '') + ' · ' + rows.length + ' suoritusta</div>';
+      board.appendChild(tile);
+    });
+  }
+
+  function renderTable(){
+    var filterVal = document.getElementById("yuFilterLaji").value;
+    var tbody = document.getElementById("yuTbody");
+    var empty = document.getElementById("yuTableEmpty");
+    tbody.innerHTML = "";
+    var rows = entries.slice().filter(function(e){ return !filterVal || e.laji === filterVal; });
+    rows.sort(function(a,b){ return b.date.localeCompare(a.date); });
+    if (rows.length === 0){ empty.style.display = ""; return; }
+    empty.style.display = "none";
+    rows.forEach(function(e){
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td>' + formatDate(e.date) + '</td>' +
+        '<td>' + e.laji + '</td>' +
+        '<td>' + (e.sarja || "") + '</td>' +
+        '<td class="tulos">' + formatTulos(e.tulosSec, e.tyyppi) + '</td>' +
+        '<td>' + (e.kilpailu || "") + '</td>' +
+        '<td>' + (e.paikka || "") + '</td>' +
+        '<td>' + (e.notes || "") + '</td>' +
+        '<td><button class="yu-del" data-id="' + e.id + '" title="Poista">✕</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll(".yu-del").forEach(function(btn){
+      btn.addEventListener("click", function(){ deleteEntry(btn.getAttribute("data-id")); });
+    });
+  }
+
+  function renderChart(){
+    var sel = document.getElementById("yuChartLaji");
+    var laji = sel.value;
+    var canvas = document.getElementById("yuChart");
+    var emptyEl = document.getElementById("yuChartEmpty");
+    var rows = entries.filter(function(e){ return e.laji === laji; }).slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    if (!laji || rows.length < 2){
+      canvas.style.display = "none"; emptyEl.style.display = "";
+      if (chart){ chart.destroy(); chart = null; }
+      return;
+    }
+    canvas.style.display = ""; emptyEl.style.display = "none";
+    var tyyppi = rows[0].tyyppi;
+    var labels = rows.map(function(e){ return formatDate(e.date); });
+    var data = rows.map(function(e){ return e.tulosSec; });
+    if (chart) chart.destroy();
+    chart = new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data: { labels: labels, datasets: [{
+        data: data, borderColor: "#C1432A", backgroundColor: "#C1432A",
+        pointRadius: 4, pointHoverRadius: 5, tension: 0.15, borderWidth: 2
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: {
+          label: function(ctx){ return formatTulos(ctx.parsed.y, tyyppi) + (tyyppi === "Matka" ? " m" : " s"); }
+        }}},
+        scales: {
+          y: {
+            reverse: tyyppi === "Aika",
+            ticks: { callback: function(v){ return formatTulos(v, tyyppi); }, font: { size: 11 } },
+            grid: { color: "#EFEEE8" }
+          },
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function exportCsv(){
+    var header = ["Päivämäärä","Laji","Sarja","Tulos","Kilpailu","Paikka","Muistiinpanot"];
+    var lines = [header.join(";")];
+    entries.slice().sort(function(a,b){ return a.date.localeCompare(b.date); }).forEach(function(e){
+      lines.push([formatDate(e.date), e.laji, e.sarja||"", formatTulos(e.tulosSec, e.tyyppi), e.kilpailu||"", e.paikka||"", (e.notes||"").replace(/;/g,",")].join(";"));
+    });
+    var blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "yleisurheilutulokset.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function renderAll(){
+    populateLajiSelects();
+    renderBoard();
+    renderTable();
+    renderChart();
+  }
+
+  document.querySelectorAll(".yu-tab").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      document.querySelectorAll(".yu-tab").forEach(function(b){ b.classList.remove("active"); });
+      document.querySelectorAll(".yu-panel").forEach(function(p){ p.classList.remove("active"); });
+      btn.classList.add("active");
+      document.getElementById("panel-" + btn.getAttribute("data-tab")).classList.add("active");
+    });
+  });
+
+  document.getElementById("yuSave").addEventListener("click", handleSave);
+  document.getElementById("yuExport").addEventListener("click", exportCsv);
+  document.getElementById("yuChartLaji").addEventListener("change", renderChart);
+  document.getElementById("yuFilterLaji").addEventListener("change", renderTable);
+  document.getElementById("yuDate").valueAsDate = new Date();
+
+  loadData().then(renderAll);
+
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  }
+})();
+</script>
